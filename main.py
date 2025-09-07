@@ -1,5 +1,6 @@
 import math
 import sys
+import concurrent.futures
 
 import requests
 import httpx
@@ -36,3 +37,37 @@ async def io_async_task():
     async with httpx.AsyncClient(timeout=5) as client:
         response = await client.get(url)
         return {"task": "io-async", "data": response.json()}
+
+
+# ---- CPU-bound с concurrent.futures (ThreadPoolExecutor) ----
+@app.get("/cpu-threadpool-task")
+async def cpu_threadpool_task(n: int = 20000):
+    def run_with_threadpool():
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(factorial, n)
+            return future.result()
+
+    result = await asyncio.to_thread(run_with_threadpool)
+
+    return {
+        "task": "cpu-threadpool",
+        "input": n,
+        "result_length": len(str(result))
+    }
+
+
+# ---- CPU-bound с concurrent.futures (ProcessPoolExecutor) ----
+@app.get("/cpu-processpool-task")
+async def cpu_processpool_task(n: int = 20000):
+    def run_with_processpool():
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            future = executor.submit(factorial, n)
+            return future.result()
+
+    result = await asyncio.to_thread(run_with_processpool)
+
+    return {
+        "task": "cpu-processpool",
+        "input": n,
+        "result_length": len(str(result))
+    }
